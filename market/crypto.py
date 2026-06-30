@@ -18,7 +18,6 @@ COINS = [
 
 
 def get_prices():
-
     params = {
         "vs_currency": "usd",
         "ids": ",".join(COINS),
@@ -33,7 +32,6 @@ def get_prices():
     coins = []
 
     for coin in data:
-
         coins.append({
             "name": coin["name"],
             "symbol": coin["symbol"].upper(),
@@ -44,14 +42,18 @@ def get_prices():
             "rank": coin["market_cap_rank"]
         })
 
+    gainer = max(coins, key=lambda x: x["change"])
+    loser = min(coins, key=lambda x: x["change"])
+
     return {
         "coins": coins,
-        "time": datetime.now().strftime("%H:%M:%S")
+        "time": datetime.now().strftime("%H:%M:%S"),
+        "gainer": gainer,
+        "loser": loser
     }
 
 
 def get_price(coin):
-
     response = requests.get(
         "https://api.coingecko.com/api/v3/simple/price",
         params={
@@ -61,9 +63,33 @@ def get_price(coin):
         timeout=10
     )
 
+    response.raise_for_status()
+
     data = response.json()
+
+    if coin not in data:
+        return {
+            "coin": coin,
+            "price": None
+        }
 
     return {
         "coin": coin,
         "price": data[coin]["usd"]
     }
+
+
+def get_bitcoin_chart():
+    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart"
+
+    params = {
+        "vs_currency": "usd",
+        "days": "1"
+    }
+
+    response = requests.get(url, params=params, timeout=10)
+    response.raise_for_status()
+
+    data = response.json()
+
+    return [round(item[1], 2) for item in data["prices"]]

@@ -19,3 +19,9 @@ function toggleTheme() {
     document.body.classList.toggle("light");
 
 }
+
+setInterval(()=>{
+
+location.reload();
+
+},30000);

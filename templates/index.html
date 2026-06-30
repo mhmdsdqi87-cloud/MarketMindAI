@@ -1,109 +1,91 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "layout.html" %}
 
-<head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>TEKA MarketMind</title>
-
-<link rel="stylesheet" href="/static/css/style.css">
-
-</head>
-
-<body>
-
-<header>
-
-<div class="logo">
-
-🚀 TEKA MarketMind
-
-</div>
-
-<nav>
-
-<a href="/">Dashboard</a>
-
-<a href="#">Markets</a>
-
-<a href="#">AI</a>
-
-<a href="#">News</a>
-
-</nav>
-
-<div id="clock"></div>
-
-</header>
-
-
-<div class="container">
+{% block content %}
 
 <div class="overview">
 
     <div style="display:flex;gap:15px;margin-bottom:30px;justify-content:center;">
 
-<button class="action-btn" onclick="refreshMarket()">
+        <button class="action-btn" onclick="refreshMarket()">
+            🔄 Refresh
+        </button>
 
-🔄 Refresh
+        <button class="action-btn" onclick="toggleTheme()">
+            🌙 Theme
+        </button>
 
-</button>
+    </div>
 
-<button class="action-btn" onclick="toggleTheme()">
+    <div class="box">
+        <h3>Coins</h3>
+        <h1>{{ coins|length }}</h1>
+    </div>
 
-🌙 Theme
+    <div class="box">
+        <h3>Updated</h3>
+        <h1>{{ time }}</h1>
+    </div>
 
-</button>
-
-</div>
-
-<div class="box">
-
-<h3>Coins</h3>
-
-<h1>{{ coins|length }}</h1>
-
-</div>
-
-<div class="box">
-
-<h3>Updated</h3>
-
-<h1>{{ time }}</h1>
+    <div class="box">
+        <h3>AI Status</h3>
+        <h1 style="color:#00ff99;">ONLINE</h1>
+    </div>
 
 </div>
-
-<div class="box">
-
-<h3>AI Status</h3>
-
-<h1 style="color:#00ff99;">ONLINE</h1>
-
-</div>
-
-</div>
-
-
 
 <form action="/search" method="get" class="search-box">
 
-<input
-type="text"
-name="coin"
-placeholder="Search Bitcoin, Ethereum..."
-required>
+    <input
+        type="text"
+        name="coin"
+        placeholder="Search Bitcoin, Ethereum..."
+        required>
 
-<button>
-
-Search
-
-</button>
+    <button>
+        Search
+    </button>
 
 </form>
 
+<div class="chart-box">
+
+    <h2>📈 Bitcoin Live Chart</h2>
+
+    <canvas id="btcChart"></canvas>
+
+</div>
+
+<div class="market-status">
+
+    <div class="status-card">
+
+        🏆 Top Gainer
+
+        <br><br>
+
+        <b>{{ gainer.symbol }}</b>
+
+        <br>
+
+        ▲ {{ gainer.change }} %
+
+    </div>
+
+    <div class="status-card">
+
+        📉 Top Loser
+
+        <br><br>
+
+        <b>{{ loser.symbol }}</b>
+
+        <br>
+
+        {{ loser.change }} %
+
+    </div>
+
+</div>
 
 <div class="cards">
 
@@ -111,49 +93,57 @@ Search
 
 <div class="card">
 
-<div class="top">
+    <div class="top">
 
-<img src="{{ coin.image }}" width="42">
+        <img src="{{ coin.image }}" width="42">
 
-<div>
+        <div>
 
-<h2>{{ coin.symbol }}</h2>
+            <h2>{{ coin.symbol }}</h2>
 
-<p>{{ coin.name }}</p>
+            <p>{{ coin.name }}</p>
 
-</div>
+        </div>
 
-</div>
+    </div>
 
-<div class="price">
+    <div class="price">
 
-${{ coin.price }}
+        ${{ coin.price }}
 
-</div>
+    </div>
 
-{% if coin.change >=0 %}
+    {% if coin.change >= 0 %}
 
-<div class="green">
+    <div class="green">
 
-▲ {{ coin.change }} %
+        ▲ {{ coin.change }} %
 
-</div>
+    </div>
 
-{% else %}
+    {% else %}
 
-<div class="red">
+    <div class="red">
 
-▼ {{ coin.change }} %
+        ▼ {{ coin.change }} %
 
-</div>
+    </div>
 
-{% endif %}
+    {% endif %}
 
-<div class="rank">
+    <div class="rank">
 
-Rank #{{ coin.rank }}
+        Rank #{{ coin.rank }}
 
-</div>
+        <button
+            class="fav-btn"
+            onclick="addWatch('{{ coin.symbol }}')">
+
+            ⭐ Favorite
+
+        </button>
+
+    </div>
 
 </div>
 
@@ -161,50 +151,33 @@ Rank #{{ coin.rank }}
 
 </div>
 
-<footer>
-
-Powered by ❤️ TEKA AI
-
 <div class="ai-box">
 
-<h2>🤖 AI Market Analysis</h2>
+    <h2>🤖 AI Market Analysis</h2>
 
-<p>
+    <p>Current Trend</p>
 
-Current Trend
+    <h1 style="color:#00ff99;">
+        BULLISH
+    </h1>
 
-</p>
+    <p>Confidence</p>
 
-<h1 style="color:#00ff99">
+    <h2>86%</h2>
 
-BULLISH
-
-</h1>
-
-<p>
-
-Confidence
-
-</p>
-
-<h2>
-
-86%
-
-</h2>
-
-<p>
-
-Next AI Scan: 30 sec
-
-</p>
+    <p>Next AI Scan: 30 sec</p>
 
 </div>
 
+<footer>
+
+    Powered by ❤️ TEKA AI
+
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/js/chart.js"></script>
 <script src="/static/js/app.js"></script>
+<script src="/static/js/watchlist.js"></script>
 
-</body>
-
-</html>
+{% endblock %}

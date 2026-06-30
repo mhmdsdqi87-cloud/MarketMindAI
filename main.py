@@ -2,11 +2,15 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from market.crypto import get_prices, get_price
+from market.crypto import (
+    get_prices,
+    get_price,
+    get_bitcoin_chart
+)
 
 app = FastAPI(
     title="TEKA MarketMind AI",
-    version="1.0"
+    version="2.0"
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -24,7 +28,9 @@ def home(request: Request):
         name="index.html",
         context={
             "coins": market["coins"],
-            "time": market["time"]
+            "time": market["time"],
+            "gainer": market["gainer"],
+            "loser": market["loser"]
         }
     )
 
@@ -48,3 +54,9 @@ def search(request: Request, coin: str):
 def crypto(coin: str):
 
     return get_price(coin)
+
+
+@app.get("/chart")
+def chart():
+
+    return get_bitcoin_chart()
