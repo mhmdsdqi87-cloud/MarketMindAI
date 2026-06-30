@@ -30,6 +30,20 @@ def home(request: Request):
         }
     )
 
+@app.get("/search")
+def search(request: Request, coin: str):
+
+    data = get_price(coin)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="search.html",
+        context={
+            "coin": data["coin"],
+            "price": data["price"]
+        }
+    )
+
 
 @app.get("/btc")
 def btc():
