@@ -1,6 +1,7 @@
 import requests
+from datetime import datetime
 
-BASE_URL = "https://api.coingecko.com/api/v3/simple/price"
+BASE_URL = "https://api.coingecko.com/api/v3/coins/markets"
 
 COINS = [
     "bitcoin",
@@ -13,8 +14,9 @@ COINS = [
 def get_prices():
 
     params = {
+        "vs_currency": "usd",
         "ids": ",".join(COINS),
-        "vs_currencies": "usd"
+        "price_change_percentage": "24h"
     }
 
     response = requests.get(BASE_URL, params=params, timeout=10)
@@ -24,24 +26,30 @@ def get_prices():
 
     coins = []
 
-    for coin in COINS:
+    for coin in data:
+
         coins.append({
-            "name": coin.title(),
-            "price": data[coin]["usd"]
+            "name": coin["name"],
+            "symbol": coin["symbol"].upper(),
+            "price": round(coin["current_price"], 2),
+            "change": round(coin["price_change_percentage_24h"], 2)
         })
 
-    return coins
+    return {
+        "coins": coins,
+        "time": datetime.now().strftime("%H:%M:%S")
+    }
 
 
 def get_price(coin):
-
-    params = {
-        "ids": coin,
-        "vs_currencies": "usd"
-    }
-
-    response = requests.get(BASE_URL, params=params, timeout=10)
-    response.raise_for_status()
+    response = requests.get(
+        "https://api.coingecko.com/api/v3/simple/price",
+        params={
+            "ids": coin,
+            "vs_currencies": "usd"
+        },
+        timeout=10
+    )
 
     data = response.json()
 

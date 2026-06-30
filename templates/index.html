@@ -1,80 +1,64 @@
 <!DOCTYPE html>
 <html lang="fa">
+
 <head>
+
 <meta charset="UTF-8">
-<title>TEKA MarketMind AI</title>
 
-<style>
+<title>TEKA MarketMind</title>
 
-body{
-    background:#0d1117;
-    color:white;
-    font-family:Arial;
-    margin:40px;
-}
-
-h1{
-    text-align:center;
-    color:#00ff99;
-}
-
-.card{
-
-    width:420px;
-
-    margin:auto;
-
-    background:#161b22;
-
-    padding:25px;
-
-    border-radius:20px;
-
-    box-shadow:0 0 25px rgba(0,255,150,.25);
-
-}
-
-.row{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    padding:12px;
-
-    border-bottom:1px solid #333;
-
-}
-
-.price{
-
-    color:#00ff99;
-
-}
-
-</style>
+<link rel="stylesheet" href="/static/css/style.css">
 
 </head>
 
 <body>
 
-<div class="card">
+<div class="container">
 
-<h1>🚀 TEKA MarketMind</h1>
+<h1 class="title">🚀 TEKA MarketMind</h1>
+
+<div class="card">
 
 {% for coin in coins %}
 
 <div class="row">
 
-<div>{{coin.name}}</div>
+<div>
+<b>{{ coin.symbol }}</b>
+<br>
+{{ coin.name }}
+</div>
+
+<div>
 
 <div class="price">
-${{coin.price}}
+${{ coin.price }}
+</div>
+
+{% if coin.change >= 0 %}
+<div style="color:#00ff99">
+▲ {{ coin.change }}%
+</div>
+{% else %}
+<div style="color:#ff4d4d">
+▼ {{ coin.change }}%
+</div>
+{% endif %}
+
 </div>
 
 </div>
 
 {% endfor %}
+
+<div class="footer">
+
+آخرین بروزرسانی:
+{{ time }}
+
+<br><br>
+
+Powered by TEKA AI 🚀
 
 </div>
 
