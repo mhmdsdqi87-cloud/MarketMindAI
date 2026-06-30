@@ -1,71 +1,121 @@
 import requests
-from datetime import datetime
+import time
 
-BASE_URL = "https://api.coingecko.com/api/v3/coins/markets"
+CACHE = {
+    "data": None,
+    "time": 0
+}
 
-COINS = [
-    "bitcoin","ethereum","solana","binancecoin","ripple",
-    "dogecoin","cardano","tron","chainlink","avalanche-2"
-]
+CACHE_TTL = 30  # ثانیه
+
+
+COINS = "bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,tron,chainlink,avalanche-2"
+
 
 def get_prices():
-    params = {
-        "vs_currency": "usd",
-        "ids": ",".join(COINS),
-        "price_change_percentage": "24h"
-    }
+    now = time.time()
 
-    r = requests.get(BASE_URL, params=params, timeout=10)
-    r.raise_for_status()
-    data = r.json()
+    # ✅ اگر کش هنوز معتبره
+    if CACHE["data"] and now - CACHE["time"] < CACHE_TTL:
+        return CACHE["data"]
 
-    coins = []
-
-    for coin in data:
-        coins.append({
-            "name": coin["name"],
-            "symbol": coin["symbol"].upper(),
-            "price": round(coin["current_price"], 2),
-            "change": round(coin.get("price_change_percentage_24h") or 0, 2),
-            "image": coin["image"],
-            "market_cap": coin["market_cap"],
-            "rank": coin["market_cap_rank"]
-        })
-
-    gainer = max(coins, key=lambda x: x["change"])
-    loser = min(coins, key=lambda x: x["change"])
-
-    return {
-        "coins": coins,
-        "time": datetime.now().strftime("%H:%M:%S"),
-        "gainer": gainer,
-        "loser": loser
-    }
-
-
-def get_price(coin):
-    r = requests.get(
-        "https://api.coingecko.com/api/v3/simple/price",
-        params={"ids": coin, "vs_currencies": "usd"},
-        timeout=10
+    url = (
+        "https://api.coingecko.com/api/v3/coins/markets"
+        f"?vs_currency=usd&ids={COINS}&price_change_percentage=24h"
     )
 
-    data = r.json()
+    try:
+        response = requests.get(url, timeout=10)
 
-    return {
-        "coin": coin,
-        "price": data.get(coin, {}).get("usd", 0),
-        "time": datetime.now().strftime("%H:%M:%S")
-    }
+        # ❌ اگر rate limit خورد
+        if response.status_code == 429:
+            return CACHE["data"] or {
+                "coins": [],
+                "time": "Rate Limited",
+                "gainer": {"symbol": "--", "change": 0},
+                "loser": {"symbol": "--", "change": 0}
+            }
+
+        response.raise_for_status()
+        data = response.json()
+
+        coins = []
+        for i, c in enumerate(data):
+            coins.append({
+                "symbol": c["symbol"].upper(),
+                "name": c["name"],
+                "price": round(c["current_price"], 4),
+                "change": round(c.get("price_change_percentage_24h", 0), 2),
+                "image": c["image"],
+                "rank": c.get("market_cap_rank", i + 1)
+            })
+
+        # 🏆 بهترین و بدترین
+        sorted_coins = sorted(coins, key=lambda x: x["change"], reverse=True)
+
+        result = {
+            "coins": coins,
+            "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "gainer": sorted_coins[0] if sorted_coins else {},
+            "loser": sorted_coins[-1] if sorted_coins else {}
+        }
+
+        # 💾 ذخیره در کش
+        CACHE["data"] = result
+        CACHE["time"] = now
+
+        return result
+
+    except Exception as e:
+        return CACHE["data"] or {
+            "coins": [],
+            "time": "Error",
+            "gainer": {"symbol": "--", "change": 0},
+            "loser": {"symbol": "--", "change": 0}
+        }
+
+
+def get_price(coin_id: str):
+    url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={coin_id}"
+
+    try:
+        r = requests.get(url, timeout=10)
+
+        if r.status_code == 429:
+            return {"coin": coin_id, "price": "Rate Limited"}
+
+        r.raise_for_status()
+        data = r.json()
+
+        if not data:
+            return {"coin": coin_id, "price": "Not Found"}
+
+        c = data[0]
+
+        return {
+            "coin": c["name"],
+            "price": c["current_price"]
+        }
+
+    except:
+        return {"coin": coin_id, "price": "Error"}
 
 
 def get_bitcoin_chart():
-    r = requests.get(
-        "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart",
-        params={"vs_currency": "usd", "days": "1"},
-        timeout=10
-    )
+    url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1"
 
-    data = r.json()
+    try:
+        r = requests.get(url, timeout=10)
 
-    return [round(i[1], 2) for i in data["prices"]]
+        if r.status_code == 429:
+            return {"error": "rate_limited"}
+
+        r.raise_for_status()
+        data = r.json()
+
+        return {
+            "prices": data.get("prices", [])
+        }
+
+    except:
+        return {"error": "failed"}
