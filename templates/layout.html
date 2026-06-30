@@ -37,11 +37,37 @@
 
 <a href="/chart">Chart</a>
 
+<a href="/watchlist">Watchlist</a>
+
 </div>
 
 </nav>
 
 <div class="hero">
+
+    <div class="stats-bar">
+
+<div class="stat">
+🌍 Coins
+<h2>{{ coins|length }}</h2>
+</div>
+
+<div class="stat">
+⚡ Market
+<h2>{{ market_health }}</h2>
+</div>
+
+<div class="stat">
+🕒 Updated
+<h2>{{ time }}</h2>
+</div>
+
+<div class="stat">
+🚀 Version
+<h2>v{{ version }}</h2>
+</div>
+
+</div>
 
 <h1>
 

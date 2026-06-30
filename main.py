@@ -10,7 +10,7 @@ from market.crypto import (
 
 app = FastAPI(
     title="TEKA MarketMind AI",
-    version="2.0"
+    version="6.0"
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -30,7 +30,9 @@ def home(request: Request):
             "coins": market["coins"],
             "time": market["time"],
             "gainer": market["gainer"],
-            "loser": market["loser"]
+            "loser": market["loser"],
+            "version": "6.0",
+            "market_health": "Healthy"
         }
     )
 
@@ -50,6 +52,16 @@ def search(request: Request, coin: str):
     )
 
 
+@app.get("/watchlist")
+def watchlist(request: Request):
+
+    return templates.TemplateResponse(
+        request=request,
+        name="watchlist.html",
+        context={}
+    )
+
+
 @app.get("/crypto/{coin}")
 def crypto(coin: str):
 
@@ -60,3 +72,7 @@ def crypto(coin: str):
 def chart():
 
     return get_bitcoin_chart()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)
