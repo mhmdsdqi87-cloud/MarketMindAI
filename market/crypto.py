@@ -8,8 +8,14 @@ COINS = [
     "ethereum",
     "solana",
     "binancecoin",
-    "ripple"
+    "ripple",
+    "dogecoin",
+    "cardano",
+    "tron",
+    "chainlink",
+    "avalanche-2"
 ]
+
 
 def get_prices():
 
@@ -32,7 +38,10 @@ def get_prices():
             "name": coin["name"],
             "symbol": coin["symbol"].upper(),
             "price": round(coin["current_price"], 2),
-            "change": round(coin["price_change_percentage_24h"], 2)
+            "change": round(coin["price_change_percentage_24h"], 2),
+            "image": coin["image"],
+            "market_cap": coin["market_cap"],
+            "rank": coin["market_cap_rank"]
         })
 
     return {
@@ -42,6 +51,7 @@ def get_prices():
 
 
 def get_price(coin):
+
     response = requests.get(
         "https://api.coingecko.com/api/v3/simple/price",
         params={

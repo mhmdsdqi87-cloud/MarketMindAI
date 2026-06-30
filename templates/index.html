@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="en">
 
 <head>
 
 <meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>TEKA MarketMind</title>
 
@@ -13,53 +15,143 @@
 
 <body>
 
+<header>
+
+<div class="logo">
+
+🚀 TEKA MarketMind
+
+</div>
+
+<nav>
+
+<a href="/">Dashboard</a>
+
+<a href="#">Markets</a>
+
+<a href="#">AI</a>
+
+<a href="#">News</a>
+
+</nav>
+
+<div id="clock"></div>
+
+</header>
+
+
 <div class="container">
 
-<h1 class="title">🚀 TEKA MarketMind</h1>
+<div class="overview">
+
+    <div style="display:flex;gap:15px;margin-bottom:30px;justify-content:center;">
+
+<button class="action-btn" onclick="refreshMarket()">
+
+🔄 Refresh
+
+</button>
+
+<button class="action-btn" onclick="toggleTheme()">
+
+🌙 Theme
+
+</button>
+
+</div>
+
+<div class="box">
+
+<h3>Coins</h3>
+
+<h1>{{ coins|length }}</h1>
+
+</div>
+
+<div class="box">
+
+<h3>Updated</h3>
+
+<h1>{{ time }}</h1>
+
+</div>
+
+<div class="box">
+
+<h3>AI Status</h3>
+
+<h1 style="color:#00ff99;">ONLINE</h1>
+
+</div>
+
+</div>
+
+
 
 <form action="/search" method="get" class="search-box">
 
 <input
 type="text"
 name="coin"
-placeholder="Search Coin..."
+placeholder="Search Bitcoin, Ethereum..."
 required>
 
-<button type="submit">
+<button>
 
-🔍 Search
+Search
 
 </button>
 
 </form>
 
-<div class="card">
+
+<div class="cards">
 
 {% for coin in coins %}
 
-<div class="row">
+<div class="card">
+
+<div class="top">
+
+<img src="{{ coin.image }}" width="42">
 
 <div>
-<b>{{ coin.symbol }}</b>
-<br>
-{{ coin.name }}
+
+<h2>{{ coin.symbol }}</h2>
+
+<p>{{ coin.name }}</p>
+
 </div>
 
-<div>
+</div>
 
 <div class="price">
+
 ${{ coin.price }}
+
 </div>
 
-{% if coin.change >= 0 %}
-<div style="color:#00ff99">
-▲ {{ coin.change }}%
+{% if coin.change >=0 %}
+
+<div class="green">
+
+▲ {{ coin.change }} %
+
 </div>
+
 {% else %}
-<div style="color:#ff4d4d">
-▼ {{ coin.change }}%
+
+<div class="red">
+
+▼ {{ coin.change }} %
+
 </div>
+
 {% endif %}
+
+<div class="rank">
+
+Rank #{{ coin.rank }}
 
 </div>
 
@@ -67,16 +159,51 @@ ${{ coin.price }}
 
 {% endfor %}
 
-<div class="footer">
+</div>
 
-آخرین بروزرسانی:
-{{ time }}
+<footer>
 
-<br><br>
+Powered by ❤️ TEKA AI
 
-Powered by TEKA AI 🚀
+<div class="ai-box">
+
+<h2>🤖 AI Market Analysis</h2>
+
+<p>
+
+Current Trend
+
+</p>
+
+<h1 style="color:#00ff99">
+
+BULLISH
+
+</h1>
+
+<p>
+
+Confidence
+
+</p>
+
+<h2>
+
+86%
+
+</h2>
+
+<p>
+
+Next AI Scan: 30 sec
+
+</p>
 
 </div>
+
+</footer>
+
+<script src="/static/js/app.js"></script>
 
 </body>
 

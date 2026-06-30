@@ -1,18 +1,16 @@
 from fastapi import FastAPI, Request
-from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
-from market.crypto import get_price, get_prices
+from market.crypto import get_prices, get_price
 
 app = FastAPI(
     title="TEKA MarketMind AI",
-    version="0.5.0"
+    version="1.0"
 )
 
-# پوشه فایل‌های استاتیک (CSS، عکس و ...)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# پوشه قالب‌های HTML
 templates = Jinja2Templates(directory="templates")
 
 
@@ -30,6 +28,7 @@ def home(request: Request):
         }
     )
 
+
 @app.get("/search")
 def search(request: Request, coin: str):
 
@@ -45,11 +44,7 @@ def search(request: Request, coin: str):
     )
 
 
-@app.get("/btc")
-def btc():
-    return get_price("bitcoin")
-
-
 @app.get("/crypto/{coin}")
 def crypto(coin: str):
+
     return get_price(coin)
