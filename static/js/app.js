@@ -1,81 +1,54 @@
-// ===== COINS =====
-async function loadCoins() {
+async function fetchMarket() {
     try {
         const res = await fetch("/api/coins");
         const data = await res.json();
 
-        const container = document.getElementById("coins");
-        if (!container) return;
+        const box = document.getElementById("coins");
+        if (!box) return;
 
-        if (!data || data.length === 0) {
-            container.innerHTML = "⚠️ No data";
-            return;
-        }
+        if (!data || !data.coins) return;
 
-        container.innerHTML = data.map(c => `
-            <div class="coin-card">
+        box.innerHTML = data.coins.map(c => `
+            <div class="card">
                 <h3>${c.name}</h3>
-                <p>$${c.current_price}</p>
-                <p>24h: ${c.price_change_percentage_24h?.toFixed(2) ?? 0}%</p>
+                <p>💰 $${c.price}</p>
+                <p style="color:${c.change >= 0 ? 'lime' : 'red'}">
+                    ${c.change >= 0 ? '▲' : '▼'} ${c.change}%
+                </p>
             </div>
         `).join("");
 
+        // update status live
+        const timeEl = document.getElementById("time");
+        if (timeEl) timeEl.innerText = data.time;
+
     } catch (err) {
-        console.log(err);
+        console.log("Market error:", err);
     }
 }
 
-loadCoins();
-setInterval(loadCoins, 30000);
+
+// ⏱ Live loop (بدون refresh)
+setInterval(fetchMarket, 5000);
+fetchMarket();
 
 
 // ===== CLOCK =====
 function updateClock() {
     const el = document.getElementById("clock");
     if (!el) return;
-
-    const now = new Date();
-    el.innerHTML = now.toLocaleTimeString();
+    el.innerHTML = new Date().toLocaleTimeString();
 }
 
 setInterval(updateClock, 1000);
 updateClock();
 
 
-// ===== BUTTONS =====
+// ===== UI BUTTONS =====
 function refreshMarket() {
-    location.reload();
+    fetchMarket(); // فقط دیتا آپدیت میشه نه کل سایت
 }
 
 function toggleTheme() {
     document.body.classList.toggle("light");
 }
-async function loadCoins() {
-    try {
-        const res = await fetch("/api/coins");
-        const data = await res.json();
-
-        const container = document.getElementById("coins");
-
-        if (!container) return;
-
-        if (!data || data.length === 0) {
-            container.innerHTML = "⚠️ No data (API limited)";
-            return;
-        }
-
-        container.innerHTML = data.map(c => `
-            <div class="coin-card">
-                <h3>${c.name}</h3>
-                <p>💰 $${c.current_price}</p>
-                <p>📊 24h: ${c.price_change_percentage_24h?.toFixed(2) ?? 0}%</p>
-            </div>
-        `).join("");
-
-    } catch (err) {
-        console.log("API error:", err);
-    }
-}
-
-// اولین لود
-loadCoins();
