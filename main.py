@@ -1,5 +1,9 @@
 from fastapi import FastAPI
 import requests
+import time
+
+CACHE = {}
+CACHE_TIME = {}
 
 app = FastAPI()
 
@@ -35,37 +39,43 @@ def get_coins():
 @app.get("/search")
 def search_coin(coin: str):
 
+    now = time.time()
+
+    # cache key
+    key = coin.lower()
+
+    # اگر کش هنوز معتبره
+    if key in CACHE and now - CACHE_TIME[key] < 30:
+        return CACHE[key]
+
     url = "https://api.coingecko.com/api/v3/coins/markets"
 
     params = {
         "vs_currency": "usd",
-        "ids": coin.lower(),
+        "ids": key,
         "price_change_percentage": "24h"
     }
 
     headers = {"User-Agent": "Mozilla/5.0"}
 
-    try:
-        r = requests.get(url, params=params, headers=headers)
+    r = requests.get(url, params=params, headers=headers)
 
-        if r.status_code != 200:
-            return {"error": "API error", "status": r.status_code}
+    if r.status_code != 200:
+        return {"error": "API rate limit (429)", "hint": "try later"}
 
-        data = r.json()
+    data = r.json()
 
-        if not data:
-            return {"error": "Coin not found"}
+    if not data:
+        return {"error": "Coin not found"}
 
-        coin_data = data[0]
+    result = {
+        "name": data[0].get("name"),
+        "price": data[0].get("current_price"),
+        "change_24h": data[0].get("price_change_percentage_24h"),
+        "status": "ok"
+    }
 
-        return {
-            "name": coin_data.get("name"),
-            "symbol": coin_data.get("symbol"),
-            "price": coin_data.get("current_price"),
-            "change_24h": coin_data.get("price_change_percentage_24h"),
-            "market_cap": coin_data.get("market_cap"),
-            "status": "ok"
-        }
+    CACHE[key] = result
+    CACHE_TIME[key] = now
 
-    except Exception as e:
-        return {"error": str(e)}
+    return result
