@@ -2,6 +2,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 import time
+import math
 
 app = FastAPI()
 
@@ -14,83 +15,117 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ساده‌ترین cache واقعی
+# Cache (برای جلوگیری از 429)
 CACHE = {}
-CACHE_TTL = 60  # 60 ثانیه
+CACHE_TIME = 20  # ثانیه
 
-# گرفتن دیتا از CoinGecko
+# Coin mapping
+SYMBOLS = {
+    "btc": "bitcoin",
+    "bitcoin": "bitcoin",
+    "eth": "ethereum",
+    "ethereum": "ethereum",
+    "sol": "solana",
+    "solana": "solana"
+}
+
+# گرفتن دیتا
 def fetch_coin(coin: str):
-    coin = coin.lower().strip()
+    coin = coin.lower()
+    coin = SYMBOLS.get(coin, coin)
 
-    # cache check
     if coin in CACHE:
-        if time.time() - CACHE[coin]["time"] < CACHE_TTL:
-            return CACHE[coin]["data"]
+        data, t = CACHE[coin]
+        if time.time() - t < CACHE_TIME:
+            return data
 
-    try:
-        url = "https://api.coingecko.com/api/v3/simple/price"
-        params = {
-            "ids": coin,
-            "vs_currencies": "usd",
-            "include_24hr_change": "true"
-        }
+    url = f"https://api.coingecko.com/api/v3/coins/{coin}"
 
-        r = requests.get(url, params=params, timeout=5)
+    r = requests.get(url)
 
-        # اگر rate limit خوردی
-        if r.status_code == 429:
-            return {
-                "error": "rate_limited",
-                "message": "Too many requests, try again later"
-            }
+    if r.status_code != 200:
+        return {"error": "Coin not found", "status": r.status_code}
 
-        if r.status_code != 200:
-            return {
-                "error": "api_error",
-                "status": r.status_code
-            }
+    data = r.json()
 
-        data = r.json()
+    price = data["market_data"]["current_price"]["usd"]
+    change_24h = data["market_data"]["price_change_percentage_24h"]
+    market_cap = data["market_data"]["market_cap"]["usd"]
 
-        if coin not in data:
-            return {
-                "error": "not_found",
-                "coin": coin
-            }
+    result = {
+        "name": data["name"],
+        "symbol": data["symbol"],
+        "price": price,
+        "change_24h": change_24h,
+        "market_cap": market_cap,
+        "status": "ok"
+    }
 
-        result = {
-            "name": coin,
-            "price": data[coin].get("usd", 0),
-            "change_24h": data[coin].get("usd_24h_change", 0),
-            "status": "ok",
-            "timestamp": int(time.time())
-        }
-
-        CACHE[coin] = {
-            "data": result,
-            "time": time.time()
-        }
-
-        return result
-
-    except Exception as e:
-        return {
-            "error": "server_error",
-            "detail": str(e)
-        }
+    CACHE[coin] = (result, time.time())
+    return result
 
 
-# ✅ این همون endpoint اصلیه (404 رو کامل حل می‌کنه)
+# 🧠 AI Trading Signal Engine
+def ai_signal(price, change_24h, market_cap):
+    score = 0
+
+    # روند 24h
+    if change_24h > 3:
+        score += 2
+    elif change_24h > 0:
+        score += 1
+    elif change_24h < -3:
+        score -= 2
+    else:
+        score -= 1
+
+    # مارکت کپ (پایداری)
+    if market_cap > 1e11:
+        score += 1
+
+    # تصمیم نهایی
+    if score >= 2:
+        return "BUY 🟢"
+    elif score <= -2:
+        return "SELL 🔴"
+    else:
+        return "HOLD 🟡"
+
+
+# Home
+@app.get("/")
+def home():
+    return {
+        "status": "AI Trading API Running",
+        "endpoints": ["/search", "/ai"]
+    }
+
+
+# قیمت ساده
 @app.get("/search")
 def search(coin: str = Query(...)):
     return fetch_coin(coin)
 
 
-# health check برای render
-@app.get("/")
-def home():
+# 🤖 AI Trading Endpoint (اصلی)
+@app.get("/ai")
+def ai(coin: str = Query(...)):
+    data = fetch_coin(coin)
+
+    if "error" in data:
+        return data
+
+    signal = ai_signal(
+        data["price"],
+        data["change_24h"],
+        data["market_cap"]
+    )
+
     return {
-        "status": "ok",
-        "service": "MarketMind AI",
-        "endpoints": ["/search?coin=bitcoin"]
+        "coin": data["name"],
+        "price": data["price"],
+        "change_24h": data["change_24h"],
+        "market_cap": data["market_cap"],
+        "ai_signal": signal,
+        "status": "ok"
     }
