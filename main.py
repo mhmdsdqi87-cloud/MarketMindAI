@@ -1,78 +1,52 @@
-from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI
+import requests
+import time
 
-from market.crypto import (
-    get_prices,
-    get_price,
-    get_bitcoin_chart
-)
+app = FastAPI()
 
-app = FastAPI(
-    title="TEKA MarketMind AI",
-    version="6.0"
-)
+CACHE = {
+    "data": None,
+    "time": 0
+}
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+API_URL = "https://api.coingecko.com/api/v3/coins/markets"
+PARAMS = {
+    "vs_currency": "usd",
+    "ids": "bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,tron,chainlink,avalanche-2",
+    "price_change_percentage": "24h"
+}
 
-templates = Jinja2Templates(directory="templates")
+CACHE_TIME = 60  # seconds
+
+
+def fetch_coins():
+    try:
+        r = requests.get(API_URL, params=PARAMS, timeout=10)
+
+        if r.status_code == 429:
+            return CACHE["data"] or []
+
+        return r.json()
+
+    except:
+        return CACHE["data"] or []
+
+
+@app.get("/api/coins")
+def get_coins():
+    now = time.time()
+
+    if CACHE["data"] and now - CACHE["time"] < CACHE_TIME:
+        return CACHE["data"]
+
+    data = fetch_coins()
+
+    CACHE["data"] = data
+    CACHE["time"] = now
+
+    return data
 
 
 @app.get("/")
-def home(request: Request):
-
-    market = get_prices()
-
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context={
-            "coins": market["coins"],
-            "time": market["time"],
-            "gainer": market["gainer"],
-            "loser": market["loser"],
-            "version": "6.0",
-            "market_health": "Healthy"
-        }
-    )
-
-
-@app.get("/search")
-def search(request: Request, coin: str):
-
-    data = get_price(coin)
-
-    return templates.TemplateResponse(
-        request=request,
-        name="search.html",
-        context={
-            "coin": data["coin"],
-            "price": data["price"]
-        }
-    )
-
-
-@app.get("/watchlist")
-def watchlist(request: Request):
-
-    return templates.TemplateResponse(
-        request=request,
-        name="watchlist.html",
-        context={}
-    )
-
-
-@app.get("/crypto/{coin}")
-def crypto(coin: str):
-
-    return get_price(coin)
-
-
-@app.get("/chart")
-def chart():
-
-    return get_bitcoin_chart()
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000)
+def home():
+    return {"status": "online"}
