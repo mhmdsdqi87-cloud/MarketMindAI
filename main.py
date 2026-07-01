@@ -1,7 +1,30 @@
 from fastapi import FastAPI
 import requests
 import time
+import random
 
+
+def ai_analyze_market(coins):
+    up = 0
+    down = 0
+
+    for c in coins:
+        if c["change"] > 0:
+            up += 1
+        else:
+            down += 1
+
+    if up > down:
+        trend = "BULLISH 🚀"
+        confidence = min(50 + (up * 5), 95)
+    else:
+        trend = "BEARISH 📉"
+        confidence = min(50 + (down * 5), 95)
+
+    return {
+        "trend": trend,
+        "confidence": confidence
+    }
 app = FastAPI()
 
 CACHE = {
@@ -50,3 +73,14 @@ def get_coins():
 @app.get("/")
 def home():
     return {"status": "online"}
+
+@app.get("/api/ai")
+def ai_status():
+    market = get_prices()
+    ai = ai_analyze_market(market["coins"])
+
+    return {
+        "trend": ai["trend"],
+        "confidence": ai["confidence"],
+        "time": market["time"]
+    }
