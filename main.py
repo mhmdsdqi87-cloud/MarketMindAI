@@ -1,86 +1,133 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 import time
-import random
 
-
-def ai_analyze_market(coins):
-    up = 0
-    down = 0
-
-    for c in coins:
-        if c["change"] > 0:
-            up += 1
-        else:
-            down += 1
-
-    if up > down:
-        trend = "BULLISH 🚀"
-        confidence = min(50 + (up * 5), 95)
-    else:
-        trend = "BEARISH 📉"
-        confidence = min(50 + (down * 5), 95)
-
-    return {
-        "trend": trend,
-        "confidence": confidence
-    }
 app = FastAPI()
 
+# CORS برای فرانت‌اند
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# کش ساده برای جلوگیری از 429
 CACHE = {
     "data": None,
     "time": 0
 }
 
-API_URL = "https://api.coingecko.com/api/v3/coins/markets"
-PARAMS = {
-    "vs_currency": "usd",
-    "ids": "bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,tron,chainlink,avalanche-2",
-    "price_change_percentage": "24h"
-}
-
-CACHE_TIME = 60  # seconds
+CACHE_TIME = 20  # ثانیه
 
 
-def fetch_coins():
-    try:
-        r = requests.get(API_URL, params=PARAMS, timeout=10)
-
-        if r.status_code == 429:
-            return CACHE["data"] or []
-
-        return r.json()
-
-    except:
-        return CACHE["data"] or []
-
-
+# =========================
+# 📊 COIN DATA API
+# =========================
 @app.get("/api/coins")
 def get_coins():
+    global CACHE
+
     now = time.time()
 
+    # اگر کش هنوز معتبره
     if CACHE["data"] and now - CACHE["time"] < CACHE_TIME:
         return CACHE["data"]
 
-    data = fetch_coins()
+    url = "https://api.coingecko.com/api/v3/coins/markets"
 
-    CACHE["data"] = data
-    CACHE["time"] = now
+    params = {
+        "vs_currency": "usd",
+        "ids": "bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,tron,chainlink,avalanche-2",
+        "price_change_percentage": "24h"
+    }
 
-    return data
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    try:
+        r = requests.get(url, params=params, headers=headers, timeout=10)
+
+        if r.status_code != 200:
+            return {"error": "API error", "status": r.status_code}
+
+        data = r.json()
+
+        result = {
+            "data": data,
+            "updated": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        CACHE["data"] = result
+        CACHE["time"] = now
+
+        return result
+
+    except Exception as e:
+        return {"error": str(e)}
 
 
-@app.get("/")
-def home():
-    return {"status": "online"}
-
+# =========================
+# 🤖 AI ANALYSIS API
+# =========================
 @app.get("/api/ai")
-def ai_status():
-    market = get_prices()
-    ai = ai_analyze_market(market["coins"])
+def ai_analysis():
+
+    coins = get_coins()
+
+    if "data" not in coins:
+        return {
+            "status": "error",
+            "message": "no data"
+        }
+
+    data = coins["data"]
+
+    up = 0
+    down = 0
+
+    for coin in data:
+        change = coin.get("price_change_percentage_24h", 0)
+
+        if change > 0:
+            up += 1
+        else:
+            down += 1
+
+    total = up + down if (up + down) > 0 else 1
+
+    sentiment = "NEUTRAL"
+    score = 50
+
+    if up > down:
+        sentiment = "BULLISH 🚀"
+        score = int((up / total) * 100)
+    else:
+        sentiment = "BEARISH 📉"
+        score = int((down / total) * 100)
 
     return {
-        "trend": ai["trend"],
-        "confidence": ai["confidence"],
-        "time": market["time"]
+        "status": "ok",
+        "sentiment": sentiment,
+        "confidence": score,
+        "up": up,
+        "down": down,
+        "updated": coins.get("updated")
+    }
+
+
+# =========================
+# 🏠 HOME (Fix Not Found)
+# =========================
+@app.get("/")
+def home():
+    return {
+        "status": "MarketMindAI Running 🚀",
+        "endpoints": [
+            "/api/coins",
+            "/api/ai"
+        ]
     }
